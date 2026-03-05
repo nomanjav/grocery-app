@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Grocery Chain Notification System</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <header class="header">
+      <div class="header-content">
+        <h1>🍔 Grocery Chain Notification System</h1>
+        <p>Real-time inventory and sales alerts</p>
+      </div>
+    </header>
+
+    <!-- Upload Section -->
+    <section class="upload-section card">
+      <h2>Upload Daily Sales Report</h2>
+      <div class="upload-container">
+        <input type="file" id="fileInput" accept=".xlsx" class="file-input">
+        <button id="uploadBtn" class="btn btn-primary">Upload Excel File</button>
+        <div id="fileInfo" class="file-info"></div>
+      </div>
+      <div id="uploadStatus" class="upload-status"></div>
+    </section>
+
+    <!-- Dashboard Section -->
+    <section class="dashboard-section card">
+      <h2>Notifications Dashboard</h2>
+
+      <!-- Summary Stats -->
+      <div class="summary-stats">
+        <div class="stat-box stat-total">
+          <div class="stat-value" id="statTotal">0</div>
+          <div class="stat-label">Total Alerts</div>
+        </div>
+        <div class="stat-box stat-critical">
+          <div class="stat-value" id="statCritical">0</div>
+          <div class="stat-label">Critical</div>
+        </div>
+        <div class="stat-box stat-high">
+          <div class="stat-value" id="statHigh">0</div>
+          <div class="stat-label">High</div>
+        </div>
+        <div class="stat-box stat-medium">
+          <div class="stat-value" id="statMedium">0</div>
+          <div class="stat-label">Medium</div>
+        </div>
+        <div class="stat-box stat-low">
+          <div class="stat-value" id="statLow">0</div>
+          <div class="stat-label">Low</div>
+        </div>
+      </div>
+
+      <!-- Filters and Search -->
+      <div class="controls">
+        <div class="filter-buttons">
+          <button class="filter-btn active" data-filter="all">All</button>
+          <button class="filter-btn" data-filter="CRITICAL">Critical</button>
+          <button class="filter-btn" data-filter="HIGH">High</button>
+          <button class="filter-btn" data-filter="MEDIUM">Medium</button>
+          <button class="filter-btn" data-filter="LOW">Low</button>
+        </div>
+
+        <div class="search-box">
+          <input type="text" id="searchInput" placeholder="Search product or store...">
+        </div>
+
+        <div class="sort-box">
+          <select id="sortSelect">
+            <option value="severity">Sort by Severity</option>
+            <option value="product">Sort by Product</option>
+            <option value="store">Sort by Store</option>
+            <option value="timestamp">Sort by Time</option>
+          </select>
+        </div>
+
+        <button id="exportBtn" class="btn btn-secondary">Export as JSON</button>
+      </div>
+
+      <!-- Notifications List -->
+      <div id="notificationsContainer" class="notifications-container">
+        <div class="empty-state">
+          <p>📂 No notifications yet. Upload an Excel file to get started.</p>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- Loading Spinner -->
+  <div id="loadingSpinner" class="loading-spinner hidden">
+    <div class="spinner"></div>
+    <p>Processing...</p>
+  </div>
+
+  <script src="main.js"></script>
+</body>
+</html>

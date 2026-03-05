@@ -1,0 +1,136 @@
+{
+  "notification_rules": [
+    {
+      "product_name": "Milk (1L)",
+      "min_stock_units": 50,
+      "min_stock_units_description": "Alert if current stock falls below 50 units",
+      "min_units_sold": 75,
+      "min_units_sold_description": "Alert if units sold drops below 75 units",
+      "min_sales_pkr": 2500,
+      "min_sales_pkr_description": "Alert if daily sales falls below 2500 PKR",
+      "sales_drop_threshold_percent": 30,
+      "sales_drop_threshold_description": "Alert if sales drop by 30% from previous day"
+    },
+    {
+      "product_name": "Rice (Basmati 1kg)",
+      "min_stock_units": 80,
+      "min_stock_units_description": "Alert if current stock falls below 80 units",
+      "min_units_sold": 50,
+      "min_units_sold_description": "Alert if units sold drops below 50 units",
+      "min_sales_pkr": 1200,
+      "min_sales_pkr_description": "Alert if daily sales falls below 1200 PKR",
+      "sales_drop_threshold_percent": 25,
+      "sales_drop_threshold_description": "Alert if sales drop by 25% from previous day"
+    },
+    {
+      "product_name": "Cooking Oil (5L)",
+      "min_stock_units": 40,
+      "min_stock_units_description": "Alert if current stock falls below 40 units",
+      "min_units_sold": 30,
+      "min_units_sold_description": "Alert if units sold drops below 30 units",
+      "min_sales_pkr": 2000,
+      "min_sales_pkr_description": "Alert if daily sales falls below 2000 PKR",
+      "sales_drop_threshold_percent": 35,
+      "sales_drop_threshold_description": "Alert if sales drop by 35% from previous day"
+    },
+    {
+      "product_name": "Sugar (1kg)",
+      "min_stock_units": 100,
+      "min_stock_units_description": "Alert if current stock falls below 100 units",
+      "min_units_sold": 50,
+      "min_units_sold_description": "Alert if units sold drops below 50 units",
+      "min_sales_pkr": 800,
+      "min_sales_pkr_description": "Alert if daily sales falls below 800 PKR",
+      "sales_drop_threshold_percent": 20,
+      "sales_drop_threshold_description": "Alert if sales drop by 20% from previous day"
+    },
+    {
+      "product_name": "Tea Leaves (500g)",
+      "min_stock_units": 60,
+      "min_stock_units_description": "Alert if current stock falls below 60 units",
+      "min_units_sold": 40,
+      "min_units_sold_description": "Alert if units sold drops below 40 units",
+      "min_sales_pkr": 2500,
+      "min_sales_pkr_description": "Alert if daily sales falls below 2500 PKR",
+      "sales_drop_threshold_percent": 30,
+      "sales_drop_threshold_description": "Alert if sales drop by 30% from previous day"
+    },
+    {
+      "product_name": "Chicken (1kg)",
+      "min_stock_units": 20,
+      "min_stock_units_description": "Alert if current stock falls below 20 units",
+      "min_units_sold": 15,
+      "min_units_sold_description": "Alert if units sold drops below 15 units",
+      "min_sales_pkr": 1500,
+      "min_sales_pkr_description": "Alert if daily sales falls below 1500 PKR",
+      "sales_drop_threshold_percent": 40,
+      "sales_drop_threshold_description": "Alert if sales drop by 40% from previous day"
+    },
+    {
+      "product_name": "Ghee (1kg)",
+      "min_stock_units": 30,
+      "min_stock_units_description": "Alert if current stock falls below 30 units",
+      "min_units_sold": 18,
+      "min_units_sold_description": "Alert if units sold drops below 18 units",
+      "min_sales_pkr": 1400,
+      "min_sales_pkr_description": "Alert if daily sales falls below 1400 PKR",
+      "sales_drop_threshold_percent": 35,
+      "sales_drop_threshold_description": "Alert if sales drop by 35% from previous day"
+    },
+    {
+      "product_name": "Sunsilk Shampoo",
+      "min_stock_units": 35,
+      "min_stock_units_description": "Alert if current stock falls below 35 units",
+      "min_units_sold": 30,
+      "min_units_sold_description": "Alert if units sold drops below 30 units",
+      "min_sales_pkr": 1500,
+      "min_sales_pkr_description": "Alert if daily sales falls below 1500 PKR",
+      "sales_drop_threshold_percent": 40,
+      "sales_drop_threshold_description": "Alert if sales drop by 40% from previous day"
+    },
+    {
+      "product_name": "Detergent Powder (1kg)",
+      "min_stock_units": 50,
+      "min_stock_units_description": "Alert if current stock falls below 50 units",
+      "min_units_sold": 30,
+      "min_units_sold_description": "Alert if units sold drops below 30 units",
+      "min_sales_pkr": 1200,
+      "min_sales_pkr_description": "Alert if daily sales falls below 1200 PKR",
+      "sales_drop_threshold_percent": 30,
+      "sales_drop_threshold_description": "Alert if sales drop by 30% from previous day"
+    }
+  ],
+  "notification_recipients": {
+    "low_stock_alerts": [
+      {
+        "name": "Store Manager",
+        "email": "manager@grocerychain.pk",
+        "phone": "+92-21-1234567"
+      },
+      {
+        "name": "Inventory Lead",
+        "email": "inventory@grocerychain.pk",
+        "phone": "+92-21-7654321"
+      }
+    ],
+    "sales_drop_alerts": [
+      {
+        "name": "Sales Head",
+        "email": "sales@grocerychain.pk",
+        "phone": "+92-21-5555555"
+      },
+      {
+        "name": "Operations Lead",
+        "email": "operations@grocerychain.pk",
+        "phone": "+92-21-6666666"
+      }
+    ]
+  },
+  "notification_settings": {
+    "enable_email": true,
+    "enable_sms": false,
+    "enable_in_app": true,
+    "alert_frequency_minutes": 60,
+    "timezone": "PKT"
+  }
+}
