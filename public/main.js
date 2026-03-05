@@ -10,11 +10,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
 function initializeApp() {
   setupFileUpload();
+  setupCategoryTabs();
   setupFilterButtons();
   setupSearchBox();
   setupSortBox();
   setupExportButton();
-  setupCategoryTabs();
 }
 
 function setupFileUpload() {
@@ -30,6 +30,24 @@ function setupFileUpload() {
   });
 
   uploadBtn.addEventListener('click', uploadFile);
+}
+
+function setupCategoryTabs() {
+  const categoryTabs = document.querySelectorAll('.category-tab');
+  
+  categoryTabs.forEach(tab => {
+    tab.addEventListener('click', (e) => {
+      e.preventDefault();
+      // Remove active from all tabs
+      categoryTabs.forEach(t => t.classList.remove('active'));
+      // Add active to clicked tab
+      tab.classList.add('active');
+      // Update current category
+      currentCategory = tab.dataset.category;
+      // Refresh display
+      displayNotifications(filterAndSortNotifications());
+    });
+  });
 }
 
 function uploadFile() {
@@ -124,19 +142,6 @@ function setupSortBox() {
   sortSelect.addEventListener('change', (e) => {
     currentSort = e.target.value;
     displayNotifications(filterAndSortNotifications());
-  });
-}
-
-function setupCategoryTabs() {
-  const categoryTabs = document.querySelectorAll('.category-tab');
-
-  categoryTabs.forEach(tab => {
-    tab.addEventListener('click', () => {
-      categoryTabs.forEach(t => t.classList.remove('active'));
-      tab.classList.add('active');
-      currentCategory = tab.dataset.category;
-      displayNotifications(filterAndSortNotifications());
-    });
   });
 }
 
