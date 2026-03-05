@@ -1,6 +1,5 @@
 const express = require('express');
 const multer = require('multer');
-const path = require('path');
 const {
   handleFileUpload,
   getNotifications,
@@ -10,21 +9,14 @@ const {
 
 const router = express.Router();
 
-// Configure multer for file uploads
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, path.join(__dirname, '../../data'));
-  },
-  filename: (req, file, cb) => {
-    cb(null, `upload-${Date.now()}.xlsx`);
-  }
-});
+// Configure multer for memory storage (Vercel compatible)
+const storage = multer.memoryStorage();
 
 const upload = multer({
   storage: storage,
   fileFilter: (req, file, cb) => {
-    const ext = path.extname(file.originalname).toLowerCase();
-    if (ext === '.xlsx') {
+    const fileName = file.originalname.toLowerCase();
+    if (fileName.endsWith('.xlsx')) {
       cb(null, true);
     } else {
       cb(new Error('Only .xlsx files are allowed'));
