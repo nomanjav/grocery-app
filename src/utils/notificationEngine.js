@@ -32,10 +32,12 @@ function generateNotifications(parsedData, thresholdsConfig) {
         notifications.push({
           id: `alert-${notificationId++}`,
           alertType: 'LOW_STOCK',
+          category: 'Stock',
           product: product.name,
           store: storeName,
           currentValue: current_stock,
           threshold: rule.min_stock_units,
+          unit: 'units',
           difference: difference,
           percentageDifference: percentageDifference,
           severity: severity,
@@ -53,10 +55,12 @@ function generateNotifications(parsedData, thresholdsConfig) {
         notifications.push({
           id: `alert-${notificationId++}`,
           alertType: 'LOW_UNITS_SOLD',
+          category: 'Stock',
           product: product.name,
           store: storeName,
           currentValue: units_sold,
           threshold: rule.min_units_sold,
+          unit: 'units',
           difference: difference,
           percentageDifference: percentageDifference,
           severity: severity,
@@ -74,10 +78,12 @@ function generateNotifications(parsedData, thresholdsConfig) {
         notifications.push({
           id: `alert-${notificationId++}`,
           alertType: 'LOW_SALES',
+          category: 'Sales',
           product: product.name,
           store: storeName,
           currentValue: sales_pkr,
           threshold: rule.min_sales_pkr,
+          unit: 'PKR',
           difference: difference,
           percentageDifference: percentageDifference,
           severity: severity,
@@ -97,9 +103,11 @@ function generateNotifications(parsedData, thresholdsConfig) {
         notifications.push({
           id: `alert-${notificationId++}`,
           alertType: 'SALES_DROP',
+          category: 'Sales',
           product: product.name,
           store: storeName,
           currentValue: sales_pkr,
+          unit: 'PKR',
           dropPercentage: parseFloat(salesDropPercent),
           threshold: rule.sales_drop_threshold_percent,
           severity: severity,
@@ -119,18 +127,29 @@ function generateNotifications(parsedData, thresholdsConfig) {
     return a.product.localeCompare(b.product);
   });
 
+  // Group notifications by category
+  const grouped = {
+    Stock: notifications.filter(n => n.category === 'Stock'),
+    Sales: notifications.filter(n => n.category === 'Sales')
+  };
+
   // Generate summary
   const summary = {
     total: notifications.length,
     critical: notifications.filter(n => n.severity === 'CRITICAL').length,
     high: notifications.filter(n => n.severity === 'HIGH').length,
     medium: notifications.filter(n => n.severity === 'MEDIUM').length,
-    low: notifications.filter(n => n.severity === 'LOW').length
+    low: notifications.filter(n => n.severity === 'LOW').length,
+    byCategory: {
+      Stock: grouped.Stock.length,
+      Sales: grouped.Sales.length
+    }
   };
 
   return {
     success: true,
     notifications: notifications,
+    grouped: grouped,
     summary: summary
   };
 }

@@ -1,6 +1,8 @@
 let allNotifications = [];
+let groupedNotifications = {};
 let currentFilter = 'all';
 let currentSort = 'severity';
+let currentCategory = 'all'; // Track which category is being viewed
 
 document.addEventListener('DOMContentLoaded', () => {
   initializeApp();
@@ -12,6 +14,7 @@ function initializeApp() {
   setupSearchBox();
   setupSortBox();
   setupExportButton();
+  setupCategoryTabs();
 }
 
 function setupFileUpload() {
@@ -61,6 +64,7 @@ function uploadFile() {
 
       if (data.success) {
         allNotifications = data.data.notifications;
+        groupedNotifications = data.data.grouped || groupNotifications(allNotifications);
         updateSummaryStats(data.data.summary);
         displayNotifications(allNotifications);
         showUploadStatus(`✓ Successfully processed ${data.data.fileName}`, 'success');
@@ -74,6 +78,13 @@ function uploadFile() {
       loadingSpinner.classList.add('hidden');
       showUploadStatus(`Network error: ${error.message}`, 'error');
     });
+}
+
+function groupNotifications(notifications) {
+  return {
+    Stock: notifications.filter(n => n.category === 'Stock'),
+    Sales: notifications.filter(n => n.category === 'Sales')
+  };
 }
 
 function showUploadStatus(message, type) {
@@ -116,6 +127,19 @@ function setupSortBox() {
   });
 }
 
+function setupCategoryTabs() {
+  const categoryTabs = document.querySelectorAll('.category-tab');
+
+  categoryTabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      categoryTabs.forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      currentCategory = tab.dataset.category;
+      displayNotifications(filterAndSortNotifications());
+    });
+  });
+}
+
 function setupExportButton() {
   const exportBtn = document.getElementById('exportBtn');
 
@@ -140,6 +164,11 @@ function setupExportButton() {
 
 function filterAndSortNotifications(baseList = allNotifications) {
   let filtered = baseList;
+
+  // Apply category filter
+  if (currentCategory !== 'all') {
+    filtered = filtered.filter(n => n.category === currentCategory);
+  }
 
   // Apply severity filter
   if (currentFilter !== 'all') {
@@ -174,7 +203,32 @@ function displayNotifications(notifications) {
     return;
   }
 
-  container.innerHTML = notifications.map(n => createNotificationCard(n)).join('');
+  // Group by category for display
+  const grouped = {};
+  notifications.forEach(n => {
+    if (!grouped[n.category]) {
+      grouped[n.category] = [];
+    }
+    grouped[n.category].push(n);
+  });
+
+  let html = '';
+
+  // Display Stock notifications
+  if (grouped['Stock'] && grouped['Stock'].length > 0) {
+    html += '<div class="category-section"><h3 class="category-heading">📦 Stock Alerts</h3>';
+    html += grouped['Stock'].map(n => createNotificationCard(n)).join('');
+    html += '</div>';
+  }
+
+  // Display Sales notifications
+  if (grouped['Sales'] && grouped['Sales'].length > 0) {
+    html += '<div class="category-section"><h3 class="category-heading">💰 Sales Alerts</h3>';
+    html += grouped['Sales'].map(n => createNotificationCard(n)).join('');
+    html += '</div>';
+  }
+
+  container.innerHTML = html;
 }
 
 function createNotificationCard(notification) {
@@ -190,7 +244,8 @@ function createNotificationCard(notification) {
     severity,
     timestamp,
     message,
-    dropPercentage
+    dropPercentage,
+    unit
   } = notification;
 
   const severityClass = severity.toLowerCase();
@@ -202,19 +257,19 @@ function createNotificationCard(notification) {
   switch (alertType) {
     case 'LOW_STOCK':
       alertTypeDisplay = '📦 Low Stock';
-      valueDisplay = `<div class="info-item"><span class="info-label">Current Stock</span><span class="info-value">${currentValue} units</span></div><div class="info-item"><span class="info-label">Threshold</span><span class="info-value">${threshold} units</span></div><div class="info-item"><span class="info-label">Below Threshold</span><span class="info-value">${percentageDifference}%</span></div>`;
+      valueDisplay = `<div class="info-item"><span class="info-label">Current Stock</span><span class="info-value">${currentValue} ${unit}</span></div><div class="info-item"><span class="info-label">Threshold</span><span class="info-value">${threshold} ${unit}</span></div><div class="info-item"><span class="info-label">Below Threshold</span><span class="info-value">${percentageDifference}%</span></div>`;
       break;
     case 'LOW_UNITS_SOLD':
       alertTypeDisplay = '📊 Low Sales Volume';
-      valueDisplay = `<div class="info-item"><span class="info-label">Units Sold</span><span class="info-value">${currentValue} units</span></div><div class="info-item"><span class="info-label">Threshold</span><span class="info-value">${threshold} units</span></div><div class="info-item"><span class="info-label">Below Threshold</span><span class="info-value">${percentageDifference}%</span></div>`;
+      valueDisplay = `<div class="info-item"><span class="info-label">Units Sold</span><span class="info-value">${currentValue} ${unit}</span></div><div class="info-item"><span class="info-label">Threshold</span><span class="info-value">${threshold} ${unit}</span></div><div class="info-item"><span class="info-label">Below Threshold</span><span class="info-value">${percentageDifference}%</span></div>`;
       break;
     case 'LOW_SALES':
       alertTypeDisplay = '💰 Low Sales Amount';
-      valueDisplay = `<div class="info-item"><span class="info-label">Sales (PKR)</span><span class="info-value">PKR ${currentValue}</span></div><div class="info-item"><span class="info-label">Threshold (PKR)</span><span class="info-value">PKR ${threshold}</span></div><div class="info-item"><span class="info-label">Below Threshold</span><span class="info-value">${percentageDifference}%</span></div>`;
+      valueDisplay = `<div class="info-item"><span class="info-label">Sales (${unit})</span><span class="info-value">${currentValue}</span></div><div class="info-item"><span class="info-label">Threshold (${unit})</span><span class="info-value">${threshold}</span></div><div class="info-item"><span class="info-label">Below Threshold</span><span class="info-value">${percentageDifference}%</span></div>`;
       break;
     case 'SALES_DROP':
       alertTypeDisplay = '📉 Sales Drop';
-      valueDisplay = `<div class="info-item"><span class="info-label">Current Sales (PKR)</span><span class="info-value">PKR ${currentValue}</span></div><div class="info-item"><span class="info-label">Drop Percentage</span><span class="info-value">${dropPercentage}%</span></div><div class="info-item"><span class="info-label">Threshold</span><span class="info-value">${threshold}%</span></div>`;
+      valueDisplay = `<div class="info-item"><span class="info-label">Current Sales (${unit})</span><span class="info-value">${currentValue}</span></div><div class="info-item"><span class="info-label">Drop Percentage</span><span class="info-value">${dropPercentage}%</span></div><div class="info-item"><span class="info-label">Threshold</span><span class="info-value">${threshold}%</span></div>`;
       break;
   }
 
@@ -247,4 +302,10 @@ function updateSummaryStats(summary) {
   document.getElementById('statHigh').textContent = summary.high;
   document.getElementById('statMedium').textContent = summary.medium;
   document.getElementById('statLow').textContent = summary.low;
+  
+  // Update category stats if available
+  if (summary.byCategory) {
+    document.getElementById('statStock').textContent = summary.byCategory.Stock || 0;
+    document.getElementById('statSales').textContent = summary.byCategory.Sales || 0;
+  }
 }
