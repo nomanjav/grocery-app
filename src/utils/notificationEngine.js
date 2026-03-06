@@ -1,6 +1,5 @@
 function generateNotifications(parsedData, thresholdsConfig) {
   const notifications = [];
-  const products = parsedData.data.products;
   const rules = thresholdsConfig.notification_rules;
 
   // Create a map of rules by product name for quick lookup
@@ -11,112 +10,135 @@ function generateNotifications(parsedData, thresholdsConfig) {
 
   let notificationId = 1;
 
-  // Check each product in each store
-  products.forEach(product => {
-    const rule = rulesMap[product.name];
+  // STOCK ALERTS - From STOCK DATA sheet
+  if (parsedData.data.stockProducts && parsedData.data.stockProducts.length > 0) {
+    parsedData.data.stockProducts.forEach(product => {
+      const rule = rulesMap[product.name];
 
-    // Skip if no rule defined for this product
-    if (!rule) {
-      return;
-    }
-
-    Object.entries(product.stores).forEach(([storeName, storeData]) => {
-      const { current_stock, units_sold, sales_pkr } = storeData;
-
-      // Check 1: Current Stock Alert
-      if (current_stock < rule.min_stock_units) {
-        const difference = rule.min_stock_units - current_stock;
-        const percentageDifference = ((difference / rule.min_stock_units) * 100).toFixed(1);
-        const severity = calculateSeverity(percentageDifference);
-
-        notifications.push({
-          id: `alert-${notificationId++}`,
-          alertType: 'LOW_STOCK',
-          category: 'Stock',
-          product: product.name,
-          store: storeName,
-          currentValue: current_stock,
-          threshold: rule.min_stock_units,
-          unit: 'units',
-          difference: difference,
-          percentageDifference: percentageDifference,
-          severity: severity,
-          timestamp: new Date().toISOString(),
-          message: `${product.name} at ${storeName}: Stock is ${current_stock} units (threshold: ${rule.min_stock_units})`
-        });
+      // Skip if no rule defined for this product
+      if (!rule) {
+        return;
       }
 
-      // Check 2: Units Sold Alert
-      if (units_sold < rule.min_units_sold) {
-        const difference = rule.min_units_sold - units_sold;
-        const percentageDifference = ((difference / rule.min_units_sold) * 100).toFixed(1);
-        const severity = calculateSeverity(percentageDifference);
+      Object.entries(product.stores).forEach(([storeName, storeData]) => {
+        const { current_stock } = storeData;
 
-        notifications.push({
-          id: `alert-${notificationId++}`,
-          alertType: 'LOW_UNITS_SOLD',
-          category: 'Stock',
-          product: product.name,
-          store: storeName,
-          currentValue: units_sold,
-          threshold: rule.min_units_sold,
-          unit: 'units',
-          difference: difference,
-          percentageDifference: percentageDifference,
-          severity: severity,
-          timestamp: new Date().toISOString(),
-          message: `${product.name} at ${storeName}: Only ${units_sold} units sold (threshold: ${rule.min_units_sold})`
-        });
-      }
+        // Check 1: Current Stock Below Threshold
+        if (current_stock < rule.min_stock_units) {
+          const difference = rule.min_stock_units - current_stock;
+          const percentageDifference = ((difference / rule.min_stock_units) * 100).toFixed(1);
+          const severity = calculateSeverity(percentageDifference);
 
-      // Check 3: Sales Amount Alert
-      if (sales_pkr < rule.min_sales_pkr) {
-        const difference = rule.min_sales_pkr - sales_pkr;
-        const percentageDifference = ((difference / rule.min_sales_pkr) * 100).toFixed(1);
-        const severity = calculateSeverity(percentageDifference);
+          notifications.push({
+            id: `alert-${notificationId++}`,
+            alertType: 'LOW_STOCK',
+            category: 'Stock',
+            product: product.name,
+            store: storeName,
+            currentValue: current_stock,
+            threshold: rule.min_stock_units,
+            unit: 'units',
+            difference: difference,
+            percentageDifference: percentageDifference,
+            severity: severity,
+            timestamp: new Date().toISOString(),
+            message: `${product.name} at ${storeName}: Stock is ${current_stock} units (threshold: ${rule.min_stock_units})`
+          });
+        }
 
-        notifications.push({
-          id: `alert-${notificationId++}`,
-          alertType: 'LOW_SALES',
-          category: 'Sales',
-          product: product.name,
-          store: storeName,
-          currentValue: sales_pkr,
-          threshold: rule.min_sales_pkr,
-          unit: 'PKR',
-          difference: difference,
-          percentageDifference: percentageDifference,
-          severity: severity,
-          timestamp: new Date().toISOString(),
-          message: `${product.name} at ${storeName}: Sales PKR ${sales_pkr} (threshold: PKR ${rule.min_sales_pkr})`
-        });
-      }
+        // Check 2: Negative Stock Alert
+        if (current_stock < 0) {
+          const difference = Math.abs(current_stock);
 
-      // Check 4: Sales Drop Alert
-      // Assuming previous day was 15% higher (conservative estimate)
-      const previousDaySales = sales_pkr / (1 - (rule.sales_drop_threshold_percent / 100));
-      const salesDropPercent = ((previousDaySales - sales_pkr) / previousDaySales * 100).toFixed(1);
-
-      if (salesDropPercent >= rule.sales_drop_threshold_percent) {
-        const severity = calculateSeverity(salesDropPercent);
-
-        notifications.push({
-          id: `alert-${notificationId++}`,
-          alertType: 'SALES_DROP',
-          category: 'Sales',
-          product: product.name,
-          store: storeName,
-          currentValue: sales_pkr,
-          unit: 'PKR',
-          dropPercentage: parseFloat(salesDropPercent),
-          threshold: rule.sales_drop_threshold_percent,
-          severity: severity,
-          timestamp: new Date().toISOString(),
-          message: `${product.name} at ${storeName}: Sales dropped ${salesDropPercent}% (threshold: ${rule.sales_drop_threshold_percent}%)`
-        });
-      }
+          notifications.push({
+            id: `alert-${notificationId++}`,
+            alertType: 'NEGATIVE_STOCK',
+            category: 'Stock',
+            product: product.name,
+            store: storeName,
+            currentValue: current_stock,
+            threshold: 0,
+            unit: 'units',
+            difference: difference,
+            percentageDifference: '100.0',
+            severity: 'CRITICAL',
+            timestamp: new Date().toISOString(),
+            message: `${product.name} at ${storeName}: CRITICAL - Negative stock of ${current_stock} units! Data quality issue.`
+          });
+        }
+      });
     });
-  });
+  }
+
+  // SALES ALERTS - From SALES DATA sheet
+  if (parsedData.data.salesProducts && parsedData.data.salesProducts.length > 0) {
+    parsedData.data.salesProducts.forEach(product => {
+      const rule = rulesMap[product.name];
+
+      // Skip if no rule defined for this product
+      if (!rule) {
+        return;
+      }
+
+      Object.entries(product.stores).forEach(([storeName, storeData]) => {
+        const { units_sold } = storeData;
+
+        // Only alert if there is data (not NaN or 0 means no sale)
+        if (units_sold === null || units_sold === undefined) {
+          return;
+        }
+
+        // Check 1: Units Sold Below Threshold
+        if (units_sold < rule.min_units_sold) {
+          const difference = rule.min_units_sold - units_sold;
+          const percentageDifference = ((difference / rule.min_units_sold) * 100).toFixed(1);
+          const severity = calculateSeverity(percentageDifference);
+
+          notifications.push({
+            id: `alert-${notificationId++}`,
+            alertType: 'LOW_UNITS_SOLD',
+            category: 'Sales',
+            product: product.name,
+            store: storeName,
+            currentValue: units_sold,
+            threshold: rule.min_units_sold,
+            unit: 'units',
+            difference: difference,
+            percentageDifference: percentageDifference,
+            severity: severity,
+            timestamp: new Date().toISOString(),
+            message: `${product.name} at ${storeName}: Low sales - only ${units_sold} units sold (threshold: ${rule.min_units_sold})`
+          });
+        }
+
+        // Check 2: Sales Drop Alert (month-to-month comparison)
+        if (rule.sales_drop_threshold_percent) {
+          // Assuming previous period was 15% higher (conservative estimate)
+          const previousPeriodUnits = units_sold / (1 - (rule.sales_drop_threshold_percent / 100));
+          const salesDropPercent = ((previousPeriodUnits - units_sold) / previousPeriodUnits * 100).toFixed(1);
+
+          if (salesDropPercent >= rule.sales_drop_threshold_percent) {
+            const severity = calculateSeverity(salesDropPercent);
+
+            notifications.push({
+              id: `alert-${notificationId++}`,
+              alertType: 'SALES_DROP',
+              category: 'Sales',
+              product: product.name,
+              store: storeName,
+              currentValue: units_sold,
+              unit: 'units',
+              dropPercentage: parseFloat(salesDropPercent),
+              threshold: rule.sales_drop_threshold_percent,
+              severity: severity,
+              timestamp: new Date().toISOString(),
+              message: `${product.name} at ${storeName}: Sales volume dropped ${salesDropPercent}% (threshold: ${rule.sales_drop_threshold_percent}%)`
+            });
+          }
+        }
+      });
+    });
+  }
 
   // Sort by severity (CRITICAL first, then HIGH, MEDIUM, LOW)
   const severityOrder = { CRITICAL: 0, HIGH: 1, MEDIUM: 2, LOW: 3 };
@@ -143,6 +165,12 @@ function generateNotifications(parsedData, thresholdsConfig) {
     byCategory: {
       Stock: grouped.Stock.length,
       Sales: grouped.Sales.length
+    },
+    byAlertType: {
+      LOW_STOCK: notifications.filter(n => n.alertType === 'LOW_STOCK').length,
+      NEGATIVE_STOCK: notifications.filter(n => n.alertType === 'NEGATIVE_STOCK').length,
+      LOW_UNITS_SOLD: notifications.filter(n => n.alertType === 'LOW_UNITS_SOLD').length,
+      SALES_DROP: notifications.filter(n => n.alertType === 'SALES_DROP').length
     }
   };
 
