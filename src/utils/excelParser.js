@@ -1,10 +1,32 @@
 const xlsx = require('xlsx');
 
+function safeString(value) {
+  if (value === null || value === undefined) return '';
+  if (typeof value === 'string') return value;
+  return String(value);
+}
+
+function safeTrim(value) {
+  const str = safeString(value);
+  if (typeof str.trim === 'function') {
+    return str.trim();
+  }
+  return str;
+}
+
+function safeInt(value) {
+  if (value === null || value === undefined || value === '') return 0;
+  const num = Number(value);
+  return isNaN(num) ? 0 : Math.round(num);
+}
+
 function parseExcelFileFromBuffer(buffer) {
   try {
+    console.log('Starting Excel parsing...');
+    
     const workbook = xlsx.read(buffer, { type: 'buffer' });
+    console.log('Workbook loaded. Sheets:', workbook.SheetNames);
 
-    // Check which sheets exist
     const hasSalesData = workbook.SheetNames.includes('SALES DATA');
     const hasStockData = workbook.SheetNames.includes('STOCK DATA');
 
@@ -19,183 +41,155 @@ function parseExcelFileFromBuffer(buffer) {
     let stockProducts = [];
     let storeNames = [];
 
-    // Parse SALES DATA sheet if it exists
+    // Parse SALES DATA sheet
     if (hasSalesData) {
+      console.log('Parsing SALES DATA sheet...');
       try {
         const salesWorksheet = workbook.Sheets['SALES DATA'];
         const salesData = xlsx.utils.sheet_to_json(salesWorksheet, { header: 1 });
+        
+        console.log(`SALES DATA has ${salesData.length} rows`);
 
         if (salesData.length < 2) {
-          return {
-            success: false,
-            error: 'SALES DATA sheet must have headers and data'
-          };
+          throw new Error('SALES DATA sheet must have headers and data');
         }
 
-        // Extract store names from sales data headers (columns F onwards, skipping first 5 columns)
-        storeNames = salesData[0]
-          .slice(5)
-          .filter(name => name !== undefined && name !== null && name !== '')
-          .map(name => {
-            const str = String(name);
-            return str.trim ? str.trim() : str;
-          })
-          .filter(name => name && name.length > 0);
+        // Extract store names
+        console.log('Extracting store names...');
+        const rawHeaders = salesData[0];
+        console.log('Raw headers count:', rawHeaders ? rawHeaders.length : 0);
+        
+        if (rawHeaders && rawHeaders.length > 5) {
+          storeNames = [];
+          for (let i = 5; i < rawHeaders.length; i++) {
+            const headerVal = rawHeaders[i];
+            if (headerVal !== undefined && headerVal !== null && headerVal !== '') {
+              const headerStr = safeTrim(headerVal);
+              if (headerStr.length > 0) {
+                storeNames.push(headerStr);
+              }
+            }
+          }
+        }
+        
+        console.log('Store names extracted:', storeNames);
 
-        // Parse sales data (rows 1 onwards)
+        // Parse sales rows
+        console.log('Parsing sales data rows...');
         for (let rowIndex = 1; rowIndex < salesData.length; rowIndex++) {
           const row = salesData[rowIndex];
           
-          // Skip if row is empty
-          if (!row || row.length < 3) {
+          if (!row || !Array.isArray(row) || row.length < 3) {
             continue;
           }
 
-          const productName = row[2]; // Column C is product name
-
-          if (productName === undefined || productName === null || productName === '') {
+          const productName = safeTrim(row[2]);
+          if (!productName) {
             continue;
           }
 
-          const productNameStr = String(productName);
-          const trimmedName = productNameStr.trim ? productNameStr.trim() : productNameStr;
-          
-          if (!trimmedName || trimmedName.length === 0) {
-            continue;
-          }
-
-          const category1Val = row[0];
-          const category2Val = row[1];
-          
-          const category1 = category1Val ? String(category1Val).trim() : '';
-          const category2 = category2Val ? String(category2Val).trim() : '';
+          const category1 = safeTrim(row[0]);
+          const category2 = safeTrim(row[1]);
           const fullCategory = category2 ? `${category1} / ${category2}` : category1;
 
           const stores = {};
           for (let storeIndex = 0; storeIndex < storeNames.length; storeIndex++) {
             const storeName = storeNames[storeIndex];
-            const value = row[5 + storeIndex];
-            
-            // Handle NaN or undefined values
-            let unitsSold = 0;
-            if (value !== undefined && value !== null && value !== '') {
-              const num = Number(value);
-              if (!isNaN(num)) {
-                unitsSold = Math.round(num);
-              }
-            }
-
-            stores[storeName] = {
-              units_sold: unitsSold
-            };
+            const unitsSold = safeInt(row[5 + storeIndex]);
+            stores[storeName] = { units_sold: unitsSold };
           }
 
           salesProducts.push({
-            name: trimmedName,
+            name: productName,
             category: fullCategory,
             stores: stores
           });
         }
+        
+        console.log(`Parsed ${salesProducts.length} products from SALES DATA`);
       } catch (err) {
-        console.error('Error parsing SALES DATA sheet:', err.message);
-        return {
-          success: false,
-          error: `Error parsing SALES DATA sheet: ${err.message}`
-        };
+        console.error('Error parsing SALES DATA:', err.message);
+        throw err;
       }
     }
 
-    // Parse STOCK DATA sheet if it exists
+    // Parse STOCK DATA sheet
     if (hasStockData) {
+      console.log('Parsing STOCK DATA sheet...');
       try {
         const stockWorksheet = workbook.Sheets['STOCK DATA'];
         const stockData = xlsx.utils.sheet_to_json(stockWorksheet, { header: 1 });
+        
+        console.log(`STOCK DATA has ${stockData.length} rows`);
 
         if (stockData.length < 2) {
-          return {
-            success: false,
-            error: 'STOCK DATA sheet must have headers and data'
-          };
+          throw new Error('STOCK DATA sheet must have headers and data');
         }
 
-        // Extract store names from stock data headers (columns E onwards, skipping first 4 columns)
-        const stockStoreNames = stockData[0]
-          .slice(4)
-          .filter(name => name !== undefined && name !== null && name !== '')
-          .map(name => {
-            const str = String(name);
-            return str.trim ? str.trim() : str;
-          })
-          .filter(name => name && name.length > 0);
+        // Extract store names from stock if not already extracted
+        console.log('Extracting stock store names...');
+        const rawHeaders = stockData[0];
+        console.log('Raw stock headers count:', rawHeaders ? rawHeaders.length : 0);
         
-        // Use stock store names if sales store names weren't found
+        let stockStoreNames = [];
+        if (rawHeaders && rawHeaders.length > 4) {
+          for (let i = 4; i < rawHeaders.length; i++) {
+            const headerVal = rawHeaders[i];
+            if (headerVal !== undefined && headerVal !== null && headerVal !== '') {
+              const headerStr = safeTrim(headerVal);
+              if (headerStr.length > 0) {
+                stockStoreNames.push(headerStr);
+              }
+            }
+          }
+        }
+        
+        console.log('Stock store names extracted:', stockStoreNames);
+
         if (storeNames.length === 0) {
           storeNames = stockStoreNames;
         }
 
-        // Parse stock data (rows 1 onwards)
+        // Parse stock rows
+        console.log('Parsing stock data rows...');
         for (let rowIndex = 1; rowIndex < stockData.length; rowIndex++) {
           const row = stockData[rowIndex];
           
-          // Skip if row is empty
-          if (!row || row.length < 3) {
+          if (!row || !Array.isArray(row) || row.length < 3) {
             continue;
           }
 
-          const productName = row[2]; // Column C is product name
-
-          if (productName === undefined || productName === null || productName === '') {
+          const productName = safeTrim(row[2]);
+          if (!productName) {
             continue;
           }
 
-          const productNameStr = String(productName);
-          const trimmedName = productNameStr.trim ? productNameStr.trim() : productNameStr;
-          
-          if (!trimmedName || trimmedName.length === 0) {
-            continue;
-          }
-
-          const category1Val = row[0];
-          const category2Val = row[1];
-          
-          const category1 = category1Val ? String(category1Val).trim() : '';
-          const category2 = category2Val ? String(category2Val).trim() : '';
+          const category1 = safeTrim(row[0]);
+          const category2 = safeTrim(row[1]);
           const fullCategory = category2 ? `${category1} / ${category2}` : category1;
 
           const stores = {};
           for (let storeIndex = 0; storeIndex < stockStoreNames.length; storeIndex++) {
             const storeName = stockStoreNames[storeIndex];
-            const value = row[4 + storeIndex];
-            
-            // Handle NaN or undefined values
-            let currentStock = 0;
-            if (value !== undefined && value !== null && value !== '') {
-              const num = Number(value);
-              if (!isNaN(num)) {
-                currentStock = Math.round(num);
-              }
-            }
-
-            stores[storeName] = {
-              current_stock: currentStock
-            };
+            const currentStock = safeInt(row[4 + storeIndex]);
+            stores[storeName] = { current_stock: currentStock };
           }
 
           stockProducts.push({
-            name: trimmedName,
+            name: productName,
             category: fullCategory,
             stores: stores
           });
         }
+        
+        console.log(`Parsed ${stockProducts.length} products from STOCK DATA`);
       } catch (err) {
-        console.error('Error parsing STOCK DATA sheet:', err.message);
-        return {
-          success: false,
-          error: `Error parsing STOCK DATA sheet: ${err.message}`
-        };
+        console.error('Error parsing STOCK DATA:', err.message);
+        throw err;
       }
     }
 
+    console.log('Excel parsing completed successfully');
     return {
       success: true,
       data: {
@@ -204,13 +198,14 @@ function parseExcelFileFromBuffer(buffer) {
         storeNames: storeNames,
         uploadDate: new Date().toISOString(),
         dataSources: {
-          salesData: hasSalesData ? salesProducts.length : 0,
-          stockData: hasStockData ? stockProducts.length : 0
+          salesData: salesProducts.length,
+          stockData: stockProducts.length
         }
       }
     };
   } catch (error) {
-    console.error('Fatal error in parseExcelFileFromBuffer:', error);
+    console.error('Fatal error in parseExcelFileFromBuffer:', error.message);
+    console.error('Error stack:', error.stack);
     return {
       success: false,
       error: `Failed to parse Excel file: ${error.message}`
