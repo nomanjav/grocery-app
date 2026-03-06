@@ -33,25 +33,40 @@ function parseExcelFileFromBuffer(buffer) {
 
       // Extract store names from sales data headers (columns F onwards, skipping first 5 columns)
       // Row 0: ['1st Level Category', 'Last Level Category', 'ARTICLE NAME', 'MONTH', 'month2', 'WT', 'DFNR', 'BTL', ...]
-      storeNames = salesData[0].slice(5).filter(name => name && name.toString().trim());
+      storeNames = salesData[0]
+        .slice(5)
+        .filter(name => name !== undefined && name !== null)
+        .map(name => String(name).trim())
+        .filter(name => name.length > 0);
 
       // Parse sales data (rows 1 onwards)
       for (let rowIndex = 1; rowIndex < salesData.length; rowIndex++) {
         const row = salesData[rowIndex];
         const productName = row[2]; // Column C is product name
 
-        if (!productName || !productName.toString().trim()) {
+        if (!productName) {
           continue;
         }
 
-        const category1 = row[0] || '';
-        const category2 = row[1] || '';
-        const fullCategory = `${category1}${category2 ? ' / ' + category2 : ''}`;
+        const productNameStr = String(productName).trim();
+        if (!productNameStr) {
+          continue;
+        }
+
+        const category1 = row[0] ? String(row[0]).trim() : '';
+        const category2 = row[1] ? String(row[1]).trim() : '';
+        const fullCategory = category2 ? `${category1} / ${category2}` : category1;
 
         const stores = {};
         for (let storeIndex = 0; storeIndex < storeNames.length; storeIndex++) {
           const storeName = storeNames[storeIndex];
-          const unitsSold = parseInt(row[5 + storeIndex]) || 0;
+          const value = row[5 + storeIndex];
+          
+          // Handle NaN or undefined values
+          let unitsSold = 0;
+          if (value !== undefined && value !== null && !isNaN(value)) {
+            unitsSold = parseInt(value) || 0;
+          }
 
           stores[storeName] = {
             units_sold: unitsSold
@@ -59,7 +74,7 @@ function parseExcelFileFromBuffer(buffer) {
         }
 
         salesProducts.push({
-          name: productName.toString().trim(),
+          name: productNameStr,
           category: fullCategory,
           stores: stores
         });
@@ -80,7 +95,11 @@ function parseExcelFileFromBuffer(buffer) {
 
       // Extract store names from stock data headers (columns E onwards, skipping first 4 columns)
       // Row 0: ['1st Level Category', 'Last Level Category', 'ARTICLE NAME', 'month2', 'WT', 'DFNR', 'BTL', ...]
-      const stockStoreNames = stockData[0].slice(4).filter(name => name && name.toString().trim());
+      const stockStoreNames = stockData[0]
+        .slice(4)
+        .filter(name => name !== undefined && name !== null)
+        .map(name => String(name).trim())
+        .filter(name => name.length > 0);
       
       // Use stock store names if sales store names weren't found
       if (storeNames.length === 0) {
@@ -92,18 +111,29 @@ function parseExcelFileFromBuffer(buffer) {
         const row = stockData[rowIndex];
         const productName = row[2]; // Column C is product name
 
-        if (!productName || !productName.toString().trim()) {
+        if (!productName) {
           continue;
         }
 
-        const category1 = row[0] || '';
-        const category2 = row[1] || '';
-        const fullCategory = `${category1}${category2 ? ' / ' + category2 : ''}`;
+        const productNameStr = String(productName).trim();
+        if (!productNameStr) {
+          continue;
+        }
+
+        const category1 = row[0] ? String(row[0]).trim() : '';
+        const category2 = row[1] ? String(row[1]).trim() : '';
+        const fullCategory = category2 ? `${category1} / ${category2}` : category1;
 
         const stores = {};
         for (let storeIndex = 0; storeIndex < stockStoreNames.length; storeIndex++) {
           const storeName = stockStoreNames[storeIndex];
-          const currentStock = parseInt(row[4 + storeIndex]) || 0;
+          const value = row[4 + storeIndex];
+          
+          // Handle NaN or undefined values
+          let currentStock = 0;
+          if (value !== undefined && value !== null && !isNaN(value)) {
+            currentStock = parseInt(value) || 0;
+          }
 
           stores[storeName] = {
             current_stock: currentStock
@@ -111,7 +141,7 @@ function parseExcelFileFromBuffer(buffer) {
         }
 
         stockProducts.push({
-          name: productName.toString().trim(),
+          name: productNameStr,
           category: fullCategory,
           stores: stores
         });
